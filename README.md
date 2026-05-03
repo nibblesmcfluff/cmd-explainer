@@ -2,215 +2,172 @@
 
 An interactive shell-based utility that deconstructs complex Linux/Unix command-line strings to explain exactly what each part does.
 
+## Overview
+
+`cmd-explainer` breaks down intimidating command-line strings into digestible explanations. It uses:
+
+- **bashlex**: Python-based parser to generate Abstract Syntax Trees (AST)
+- **Man Page Database**: ~30,000 parsed man pages (primarily Ubuntu)
+- **Natural Language Processing**: NLTK-based heuristic extraction for relevant documentation
+- **Interactive Visualization**: Markdown-rendered explanations with connecting lines
+
 ## Features
 
-- **Command Parsing**: Uses `bashlex` to break command strings into an Abstract Syntax Tree (AST)
-- **Man Page Mapping**: References a database of ~30,000 parsed man pages (primarily from Ubuntu)
-- **Heuristic Extraction**: Uses Python NLP (NLTK) to isolate relevant documentation paragraphs
-- **Interactive Visualization**: Renders Markdown with connecting lines between command parts and their explanations
-- **REPL Interface**: Interactive shell for continuous command analysis
-- **Colored Output**: Easy-to-read terminal output with syntax highlighting
-- **Export Capability**: Save explanations to file for documentation
+✨ **Command Parsing**: Distinguishes commands, flags, arguments, pipes, redirections
+📚 **Man Page Mapping**: References extensive documentation database
+🔍 **Heuristic Extraction**: Isolates relevant paragraphs for specific flags/options
+📊 **Interactive Visualization**: Visual Markdown representation of command structure
+🎯 **Educational**: Perfect for learning complex command syntax
+💾 **Export**: Save explanations to file for reference
 
 ## Installation
 
-### Requirements
+### Prerequisites
+
 - Python 3.8+
 - pip
 
-### Setup
+### Quick Start
 
 ```bash
 git clone https://github.com/nibblesmcfluff/cmd-explainer.git
 cd cmd-explainer
 pip install -r requirements.txt
+python cmd_explainer.py
 ```
-
-### Download Man Pages Database (Optional)
-
-For the full 30,000 man pages experience:
-
-```bash
-python scripts/download_man_pages.py
-```
-
-This will download and parse man pages from Ubuntu man-pages archives.
 
 ## Usage
 
-### Interactive Shell
+### Interactive Mode
 
 ```bash
-python cmd_explainer/main.py
+$ python cmd_explainer.py
+cmd-explainer> grep -r "pattern" /path/to/files | head -20
 ```
 
-Then type commands to analyze:
-
-```
-> ls -lah /tmp
-> grep -r "pattern" --include="*.py" .
-> find . -name "*.txt" -exec cat {} \;
-> ps aux | grep python | awk '{print $2}'
-```
-
-### Command Line
+### Single Command Mode
 
 ```bash
-python cmd_explainer/main.py "ls -lah /tmp"
+python cmd_explainer.py "ls -lah /home"
 ```
 
-### Programmatic Usage
+### Example Output
 
-```python
-from cmd_explainer import CommandExplainer
+```
+COMMAND STRUCTURE:
+├── ls
+│   ├── -l (long format listing)
+│   ├── -a (show hidden files)
+│   └── -h (human-readable sizes)
+└── /home (target directory)
 
-explainer = CommandExplainer()
-result = explainer.explain("grep -r 'pattern' --include='*.py' .")
-print(result)
+DETAILED EXPLANATION:
+• ls: List directory contents
+• -l: Display in long format (permissions, owner, size, date)
+• -a: Include entries starting with . (hidden files)
+• -h: Print human-readable file sizes (K, M, G)
+• /home: Operate on /home directory
 ```
 
 ## Project Structure
 
 ```
 cmd-explainer/
-├── cmd_explainer/
+├── README.md
+├── requirements.txt
+├── cmd_explainer.py          # Main entry point
+├── src/
 │   ├── __init__.py
-│   ├── main.py                 # Interactive shell entry point
-│   ├── parser.py              # AST parsing with bashlex
-│   ├── analyzer.py            # Command component analysis
-│   ├── man_page_db.py         # Man page database interface
-│   ├── nlp_processor.py       # NLTK-based text processing
-│   ├── visualizer.py          # Markdown visualization
-│   └── utils.py               # Utility functions
-├── scripts/
-│   ├── download_man_pages.py  # Man page database downloader
-│   └── parse_man_pages.py     # Man page parser and indexer
+│   ├── parser.py             # bashlex integration
+│   ├── man_db.py             # Man page database
+│   ├── extractor.py          # NLP-based extraction
+│   ├── visualizer.py         # Markdown visualization
+│   └── shell.py              # Interactive shell
 ├── data/
-│   ├── man_pages.db           # SQLite database (generated)
-│   └── man_pages_index.json   # Man pages index (generated)
+│   ├── man_pages.db          # SQLite database (optional)
+│   └── man_pages_index.json  # Man page index
 ├── tests/
 │   ├── test_parser.py
-│   ├── test_analyzer.py
-│   └── test_visualizer.py
-├── requirements.txt
-├── setup.py
-└── README.md
+│   ├── test_extractor.py
+│   └── test_man_db.py
+└── docs/
+    ├── architecture.md
+    ├── contributing.md
+    └── examples.md
 ```
 
-## Example Output
+## Core Components
 
-```
-Command: ls -lah /tmp
+### 1. **Parser** (`src/parser.py`)
+Uses bashlex to parse command strings into AST, extracting:
+- Command name
+- Flags and options
+- Arguments
+- Operators (pipes, redirections)
 
-┌─────────────────────────────────────────────────────────────┐
-│ COMMAND BREAKDOWN                                           │
-└─────────────────────────────────────────────────────────────┘
+### 2. **Man Page Database** (`src/man_db.py`)
+- Loads pre-parsed man pages
+- Provides lookup for commands and flags
+- Caches frequently used entries
+- Falls back to online API if needed
 
-  ls ──────┬─────────────────────────────────────────────────
-           │
-           └─→ List directory contents
-                 From: man ls (1)
-                 "List information about the FILEs (the current
-                  directory by default)."
+### 3. **Extractor** (`src/extractor.py`)
+- Uses NLTK for natural language processing
+- Identifies relevant paragraphs
+- Extracts option descriptions
+- Ranks results by relevance
 
-  -l ──────┬─────────────────────────────────────────────────
-           │
-           └─→ use a long listing format
-                 "use a long listing format"
+### 4. **Visualizer** (`src/visualizer.py`)
+- Generates ASCII tree structure
+- Creates Markdown explanations
+- Links parsed components to documentation
+- Supports colored output
 
-  -a ──────┬─────────────────────────────────────────────────
-           │
-           └─→ do not ignore entries starting with .
-                 "do not ignore entries starting with ."
+### 5. **Interactive Shell** (`src/shell.py`)
+- REPL-style interface
+- Command history
+- Autocomplete support
+- Export functionality
 
-  -h ──────┬─────────────────────────────────────────────────
-           │
-           └─→ print sizes in human readable format
-                 "print sizes in human readable format (e.g., 1K
-                  234M 2G)"
+## Examples
 
-  /tmp ────┬─────────────────────────────────────────────────
-           │
-           └─→ Directory argument
-                 Path to list contents of
-```
+See `docs/examples.md` for detailed walkthroughs of:
+- Basic commands (`ls`, `grep`, `find`)
+- Complex pipelines (`grep | awk | sort`)
+- Redirection and file operations
+- Advanced options and flags
 
-## Development
+## Data Directory
 
-### Running Tests
-
-```bash
-pytest tests/
-```
-
-### Building Documentation
-
-```bash
-python scripts/generate_docs.py
-```
-
-## Architecture
-
-### 1. Command Parsing (`parser.py`)
-- Uses `bashlex` to generate AST from command strings
-- Extracts command, subcommands, flags, arguments, pipes, redirections
-- Handles complex shell syntax (globbing, quoting, variable expansion context)
-
-### 2. Analysis (`analyzer.py`)
-- Maps AST nodes to semantic components
-- Categorizes: command, options/flags, arguments, redirections, pipes
-- Tracks flag values and their arguments
-
-### 3. Man Page Database (`man_page_db.py`)
-- SQLite backend for efficient querying
-- Indexed by command name and flag
-- Caches frequently accessed pages
-
-### 4. NLP Processing (`nlp_processor.py`)
-- Uses NLTK for text tokenization and processing
-- Extracts relevant paragraphs for flags/options
-- Implements TF-IDF scoring for relevance ranking
-
-### 5. Visualization (`visualizer.py`)
-- Renders Markdown with ASCII art connections
-- Syntax highlighting with color codes
-- Responsive terminal formatting
-
-## Data Sources
-
-- **Ubuntu Man Pages**: https://manpages.ubuntu.com/
-- **Linux Man-Pages Project**: https://www.kernel.org/doc/man-pages/
-- **GNU Coreutils**: https://www.gnu.org/software/coreutils/
+The `data/` directory contains:
+- Man page database (SQLite or JSON)
+- Index files for quick lookups
+- Scripts for building/updating the database
 
 ## Contributing
 
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+See `docs/contributing.md` for guidelines on:
+- Adding new man pages
+- Improving parsing logic
+- Enhancing visualizations
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License - See LICENSE file for details
 
 ## Roadmap
 
-- [ ] Full 30,000 man page database integration
-- [ ] Machine learning for better flag detection
-- [ ] Shell integration (bash/zsh completion)
-- [ ] Web-based interface
-- [ ] Multi-language man page support
-- [ ] Real-time command validation
-- [ ] Integration with Stack Overflow for examples
-- [ ] Docker containerization
+- [ ] Web interface for cmd-explainer
+- [ ] Real-time man page synchronization
+- [ ] Custom command aliases
+- [ ] Integration with shell history
+- [ ] Multi-language support
+- [ ] Community man page contributions
 
 ## Support
 
-For issues, questions, or suggestions, please open an issue on GitHub.
+Found a bug? Have a feature request? Open an issue or submit a pull request!
 
 ---
 
-**Made with ❤️ by nibblesmcfluff**
+**Made with ❤️ for Linux/Unix learners**
